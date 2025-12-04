@@ -22,7 +22,8 @@ const CONFIG = {
     ZOHO_PEOPLE_API_DOMAIN: 'https://people.zoho.in',
     
     // Employee Identification (from Railway environment variables)
-    EMPLOYEE_ID: process.env.EMPLOYEE_ID,
+    EMPLOYEE_ID: process.env.EMPLOYEE_ID,  // For check-in/check-out API (record number)
+    EMPLOYEE_API_ID: process.env.EMPLOYEE_API_ID || process.env.EMPLOYEE_ID,  // For filtering fetch results
     EMPLOYEE_EMAIL: process.env.EMPLOYEE_EMAIL,
     MAPPER_ID: process.env.MAPPER_ID || '',
     
@@ -186,7 +187,24 @@ function getMostRecentAction(lastEntryData) {
         }
         
         if (Array.isArray(results) && results.length > 0) {
-            const userEntry = results[0];
+            // Find the entry matching our employee ID
+            const userEntry = results.find(entry => {
+                const idMatch = entry.employeeId === CONFIG.EMPLOYEE_API_ID;
+                const emailMatch = entry.emailId === CONFIG.EMPLOYEE_EMAIL;
+                // Debug: log comparison
+                if (process.argv.includes('debug')) {
+                    console.log(`\nDebug: Checking employee entry:`);
+                    console.log(`  API employeeId: "${entry.employeeId}" vs Config: "${CONFIG.EMPLOYEE_API_ID}" = ${idMatch}`);
+                    console.log(`  API emailId: "${entry.emailId}" vs Config: "${CONFIG.EMPLOYEE_EMAIL}" = ${emailMatch}`);
+                }
+                return idMatch || emailMatch;
+            });
+            
+            if (!userEntry) {
+                // No entry found for this employee
+                return null;
+            }
+            
             if (userEntry.entries && Array.isArray(userEntry.entries) && userEntry.entries.length > 0) {
                 const dateEntry = userEntry.entries[0];
                 const dateKey = Object.keys(dateEntry)[0];
@@ -284,21 +302,30 @@ async function performAttendanceAction(operation, scheduleId, options = {}) {
             const hasEntries = Array.isArray(entries) && entries.length > 0;
             
             if (hasEntries) {
-                if (operation === 'checkin') {
-                    // Before check-in, ensure last entry was check-out
-                    if (isLastEntryCheckIn(lastEntry.data)) {
-                        log('Last entry was check-in, performing check-out first', 'INFO');
-                        // Perform checkout first
-                        await performAttendanceActionDirect('checkout', scheduleId, options);
-                        // Wait a moment
-                        await new Promise(resolve => setTimeout(resolve, 2000));
+                // Check if we can find this user's data in the response
+                const mostRecentAction = getMostRecentAction(lastEntry.data);
+                
+                if (mostRecentAction) {
+                    // We found the user's entries - perform validation
+                    if (operation === 'checkin') {
+                        // Before check-in, ensure last entry was check-out
+                        if (mostRecentAction === 'checkin') {
+                            log('Last entry was check-in, performing check-out first', 'INFO');
+                            // Perform checkout first
+                            await performAttendanceActionDirect('checkout', scheduleId, options);
+                            // Wait a moment
+                            await new Promise(resolve => setTimeout(resolve, 2000));
+                        }
+                    } else if (operation === 'checkout') {
+                        // Before check-out, ensure last entry was check-in
+                        if (mostRecentAction !== 'checkin') {
+                            log('Last entry was not check-in, skipping check-out', 'INFO');
+                            return { success: false, message: 'Skipped: No active check-in found' };
+                        }
                     }
-                } else if (operation === 'checkout') {
-                    // Before check-out, ensure last entry was check-in
-                    if (!isLastEntryCheckIn(lastEntry.data)) {
-                        log('Last entry was not check-in, skipping check-out', 'INFO');
-                        return { success: false, message: 'Skipped: No active check-in found' };
-                    }
+                } else {
+                    // No user entries found in response - allow operation (can't validate)
+                    log(`Could not find user's entries in API response, proceeding with ${operation}`, 'INFO');
                 }
             } else {
                 // No entries found - allow operation to proceed (first time or API delay)
@@ -912,6 +939,9 @@ async function main() {
                 console.log('\nValidation Checks:');
                 console.log('- Is last entry check-in?', isLastEntryCheckIn(lastEntry.data));
                 console.log('- Is last entry check-out?', isLastEntryCheckOut(lastEntry.data));
+                console.log('\nConfig Values:');
+                console.log('- EMPLOYEE_API_ID:', CONFIG.EMPLOYEE_API_ID);
+                console.log('- EMPLOYEE_EMAIL:', CONFIG.EMPLOYEE_EMAIL);
             }
             break;
         }

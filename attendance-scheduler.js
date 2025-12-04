@@ -2,6 +2,10 @@ import fetch from 'node-fetch';
 import cron from 'node-cron';
 import fs from 'fs';
 import path from 'path';
+import dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
 
 // ======================================================================
 // ADVANCED ZOHO PEOPLE PLUS ATTENDANCE SCHEDULER
@@ -39,7 +43,7 @@ const CONFIG = {
     SCHEDULE_FILE: './schedule.json',
 };
 
-let currentAccessToken = '1000.9c91edfcc3ff6c1ac75f50095e87feb6.2b6e243a561719ce46f1950dc872a553';
+let currentAccessToken = '1000.305324c867175f42336be1c3aa7700f7.7b11357bb6e0a75b61aefdbff56464e4';
 let tokenExpirationTime = Date.now() + (3600 * 1000);
 const activeSchedules = new Map();
 

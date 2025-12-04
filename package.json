@@ -24,10 +24,10 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "dotenv": "^17.2.3",
     "node-cron": "^3.0.3",
     "node-fetch": "^2.7.0"
   },
-  "devDependencies": {},
   "engines": {
     "node": ">=14.0.0"
   }

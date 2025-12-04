@@ -8,18 +8,18 @@ import path from 'path';
 // ======================================================================
 
 const CONFIG = {
-    // API Credentials (Railway env vars or fallback to hardcoded)
-    CLIENT_ID: process.env.ZOHO_CLIENT_ID || '1000.D5RD137IYSRA5SBMBP000XORKT423B',
-    CLIENT_SECRET: process.env.ZOHO_CLIENT_SECRET || 'd1a79031982c7dae82d562d8bd912b7acc678302aa',
-    REFRESH_TOKEN: process.env.ZOHO_REFRESH_TOKEN || '1000.7c8573a28d1a91e4c5ae625a60ea30b6.f705a17de843b43a47f4c52af4a53d9f',
+    // API Credentials (from Railway environment variables)
+    CLIENT_ID: process.env.ZOHO_CLIENT_ID,
+    CLIENT_SECRET: process.env.ZOHO_CLIENT_SECRET,
+    REFRESH_TOKEN: process.env.ZOHO_REFRESH_TOKEN,
     
     // API Domains
     ZOHO_ACCOUNT_DOMAIN: 'https://accounts.zoho.in',
     ZOHO_PEOPLE_API_DOMAIN: 'https://people.zoho.in',
     
-    // Employee Identification (Railway env vars or fallback to hardcoded)
-    EMPLOYEE_ID: process.env.EMPLOYEE_ID || '60028527882',
-    EMPLOYEE_EMAIL: process.env.EMPLOYEE_EMAIL || 'jimmeey@physique57india.com',
+    // Employee Identification (from Railway environment variables)
+    EMPLOYEE_ID: process.env.EMPLOYEE_ID,
+    EMPLOYEE_EMAIL: process.env.EMPLOYEE_EMAIL,
     MAPPER_ID: process.env.MAPPER_ID || '',
     
     // Scheduling Configuration (24-hour format)

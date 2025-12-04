@@ -4,8 +4,8 @@ import fs from 'fs';
 import path from 'path';
 import dotenv from 'dotenv';
 
-// Load environment variables
-dotenv.config();
+// Load environment variables without debug output
+dotenv.config({ quiet: true });
 
 // ======================================================================
 // ADVANCED ZOHO PEOPLE PLUS ATTENDANCE SCHEDULER
@@ -142,7 +142,123 @@ async function refreshAccessToken() {
 }
 
 /**
- * Performs attendance action (check-in or check-out)
+ * Fetches the last attendance entry to check status
+ */
+async function fetchLastAttendanceEntry() {
+    try {
+        const token = await getValidAccessToken();
+        const url = `${CONFIG.ZOHO_PEOPLE_API_DOMAIN}/api/attendance/fetchLatestAttEntries?duration=5&dateTimeFormat=dd-MM-yyyy HH:mm:ss`;
+        
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Zoho-oauthtoken ${token}`,
+            },
+        });
+
+        const text = await response.text();
+        
+        if (response.ok) {
+            try {
+                const data = JSON.parse(text);
+                return { success: true, data };
+            } catch (e) {
+                return { success: true, data: text };
+            }
+        } else {
+            log('Failed to fetch last attendance entry', 'ERROR');
+            return { success: false, response: text };
+        }
+    } catch (error) {
+        log(`Error fetching last entry: ${error.message}`, 'ERROR');
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Helper function to parse timestamp and find the most recent action
+ */
+function getMostRecentAction(lastEntryData) {
+    try {
+        let results = lastEntryData;
+        if (lastEntryData.response && lastEntryData.response.result) {
+            results = lastEntryData.response.result;
+        }
+        
+        if (Array.isArray(results) && results.length > 0) {
+            const userEntry = results[0];
+            if (userEntry.entries && Array.isArray(userEntry.entries) && userEntry.entries.length > 0) {
+                const dateEntry = userEntry.entries[0];
+                const dateKey = Object.keys(dateEntry)[0];
+                const attEntries = dateEntry[dateKey]?.attEntries;
+                
+                if (Array.isArray(attEntries) && attEntries.length > 0) {
+                    // Parse all timestamps and find the most recent action
+                    let mostRecentAction = null;
+                    let mostRecentTime = null;
+                    
+                    attEntries.forEach(entry => {
+                        const checkInTime = entry.checkInTime || entry.CheckInTime;
+                        const checkOutTime = entry.checkOutTime || entry.CheckOutTime;
+                        
+                        if (checkInTime) {
+                            const checkInDate = parseDate(checkInTime);
+                            if (!mostRecentTime || checkInDate > mostRecentTime) {
+                                mostRecentTime = checkInDate;
+                                mostRecentAction = 'checkin';
+                            }
+                        }
+                        
+                        if (checkOutTime) {
+                            const checkOutDate = parseDate(checkOutTime);
+                            if (!mostRecentTime || checkOutDate > mostRecentTime) {
+                                mostRecentTime = checkOutDate;
+                                mostRecentAction = 'checkout';
+                            }
+                        }
+                    });
+                    
+                    return mostRecentAction;
+                }
+            }
+        }
+        return null;
+    } catch (error) {
+        return null;
+    }
+}
+
+/**
+ * Helper to parse date from format "dd-MM-yyyy HH:mm:ss"
+ */
+function parseDate(dateStr) {
+    try {
+        // Format: "04-12-2025 19:53:00"
+        const [datePart, timePart] = dateStr.split(' ');
+        const [day, month, year] = datePart.split('-');
+        const [hour, minute, second] = timePart.split(':');
+        return new Date(year, month - 1, day, hour, minute, second);
+    } catch (error) {
+        return null;
+    }
+}
+
+/**
+ * Checks if last entry was check-out
+ */
+function isLastEntryCheckOut(lastEntryData) {
+    return getMostRecentAction(lastEntryData) === 'checkout';
+}
+
+/**
+ * Checks if last entry was check-in
+ */
+function isLastEntryCheckIn(lastEntryData) {
+    return getMostRecentAction(lastEntryData) === 'checkin';
+}
+
+/**
+ * Performs attendance action (check-in or check-out) with validation
  * @param {string} operation - 'checkin' or 'checkout'
  * @param {string} scheduleId - Schedule identifier
  * @param {object} options - Optional parameters
@@ -152,6 +268,56 @@ async function refreshAccessToken() {
  *   - datetocheck: Specific date (YYYY-MM-DD)
  */
 async function performAttendanceAction(operation, scheduleId, options = {}) {
+    try {
+        // Fetch last attendance entry to validate
+        const lastEntry = await fetchLastAttendanceEntry();
+        
+        // Only validate if we successfully got data with entries
+        if (lastEntry.success && lastEntry.data) {
+            // Extract the actual entries array
+            let entries = lastEntry.data;
+            if (lastEntry.data.response && lastEntry.data.response.result) {
+                entries = lastEntry.data.response.result;
+            }
+            
+            // Only perform validation if we have actual entries
+            const hasEntries = Array.isArray(entries) && entries.length > 0;
+            
+            if (hasEntries) {
+                if (operation === 'checkin') {
+                    // Before check-in, ensure last entry was check-out
+                    if (isLastEntryCheckIn(lastEntry.data)) {
+                        log('Last entry was check-in, performing check-out first', 'INFO');
+                        // Perform checkout first
+                        await performAttendanceActionDirect('checkout', scheduleId, options);
+                        // Wait a moment
+                        await new Promise(resolve => setTimeout(resolve, 2000));
+                    }
+                } else if (operation === 'checkout') {
+                    // Before check-out, ensure last entry was check-in
+                    if (!isLastEntryCheckIn(lastEntry.data)) {
+                        log('Last entry was not check-in, skipping check-out', 'INFO');
+                        return { success: false, message: 'Skipped: No active check-in found' };
+                    }
+                }
+            } else {
+                // No entries found - allow operation to proceed (first time or API delay)
+                log(`No recent entries found, proceeding with ${operation}`, 'INFO');
+            }
+        }
+        
+        // Proceed with the actual operation
+        return await performAttendanceActionDirect(operation, scheduleId, options);
+    } catch (error) {
+        log(`${operation.toUpperCase()} error: ${error.message}`, 'ERROR');
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Direct attendance action without validation (internal use)
+ */
+async function performAttendanceActionDirect(operation, scheduleId, options = {}) {
     try {
         const token = await getValidAccessToken();
         
@@ -725,7 +891,7 @@ async function main() {
             if (result.success) {
                 console.log('✓ Check-out successful');
             } else {
-                console.error('✗ Check-out failed');
+                console.error('✗ Check-out failed:', result.message || result.error || 'Unknown error');
             }
             break;
         }
@@ -734,6 +900,19 @@ async function main() {
             const status = getSystemStatus();
             console.log('\n📊 System Status:');
             console.log(JSON.stringify(status, null, 2));
+            break;
+        }
+
+        case 'debug': {
+            console.log('\n🔍 Fetching last attendance entry...');
+            const lastEntry = await fetchLastAttendanceEntry();
+            console.log('\nRaw Response:');
+            console.log(JSON.stringify(lastEntry, null, 2));
+            if (lastEntry.success && lastEntry.data) {
+                console.log('\nValidation Checks:');
+                console.log('- Is last entry check-in?', isLastEntryCheckIn(lastEntry.data));
+                console.log('- Is last entry check-out?', isLastEntryCheckOut(lastEntry.data));
+            }
             break;
         }
 

@@ -12,11 +12,11 @@ After deploying to Railway, you **MUST** add these environment variables:
 4. Add each of these:
 
 ```
-ZOHO_CLIENT_ID=1000.D5RD137IYSRA5SBMBP000XORKT423B
-ZOHO_CLIENT_SECRET=d1a79031982c7dae82d562d8bd912b7acc678302aa
-ZOHO_REFRESH_TOKEN=1000.7c8573a28d1a91e4c5ae625a60ea30b6.f705a17de843b43a47f4c52af4a53d9f
-EMPLOYEE_ID=60028527882
-EMPLOYEE_EMAIL=jimmeey@physique57india.com
+ZOHO_CLIENT_ID=your_client_id_here
+ZOHO_CLIENT_SECRET=your_client_secret_here
+ZOHO_REFRESH_TOKEN=your_refresh_token_here
+EMPLOYEE_ID=your_employee_id
+EMPLOYEE_EMAIL=your_email@company.com
 ```
 
 5. Click **"Deploy"** to restart with new variables

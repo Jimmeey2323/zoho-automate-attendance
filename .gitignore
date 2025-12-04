@@ -1,0 +1,66 @@
+# Environment Variables
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+
+# Logs
+*.log
+*.log.*
+logs/
+
+# Runtime Data
+attendance.log
+schedule.json
+
+# Node modules
+node_modules/
+package-lock.json
+yarn.lock
+
+# IDE Files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Runtime Files
+node_modules/
+dist/
+build/
+
+# Process Manager Files
+.pm2/
+ecosystem.config.js
+
+# Docker
+.docker/
+docker-compose.override.yml
+
+# Temporary Files
+tmp/
+temp/
+*.tmp
+
+# OS Files
+.DS_Store
+Thumbs.db
+*.pdb
+
+# Sensitive Files (if using any)
+secrets.json
+credentials.json
+api-keys.json
+
+# Backup Files
+*.bak
+*.backup
+schedule.json.bak
+attendance.log.old
+
+# Configuration Overrides
+local-config.js
+config.local.js

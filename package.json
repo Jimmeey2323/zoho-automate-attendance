@@ -1,0 +1,34 @@
+{
+  "name": "zoho-automate-attendance",
+  "version": "1.0.0",
+  "description": "Advanced Node.js script for scheduling check-ins and check-outs on Zoho People Plus",
+  "type": "module",
+  "main": "attendance-scheduler.js",
+  "scripts": {
+    "start": "node attendance-scheduler.js start",
+    "add": "node attendance-scheduler.js add",
+    "list": "node attendance-scheduler.js list",
+    "status": "node attendance-scheduler.js status",
+    "checkin": "node attendance-scheduler.js checkin",
+    "checkout": "node attendance-scheduler.js checkout",
+    "help": "node attendance-scheduler.js help"
+  },
+  "keywords": [
+    "zoho",
+    "attendance",
+    "scheduling",
+    "automation",
+    "check-in",
+    "check-out"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "node-cron": "^3.0.3",
+    "node-fetch": "^2.7.0"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

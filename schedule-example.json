@@ -1,0 +1,24 @@
+{
+  "schedules": [],
+  "exampleSchedule": {
+    "id": "schedule_example_1701700800000",
+    "checkinTime": "09:00",
+    "checkoutTime": "18:00",
+    "workingDays": [1, 2, 3, 4, 5],
+    "enabled": true,
+    "timezone": "Asia/Kolkata",
+    "description": "Standard 9-to-6 office schedule",
+    "createdAt": "2025-12-04T10:00:00.000Z"
+  },
+  "exampleSchedule2": {
+    "id": "schedule_example_1701704400000",
+    "checkinTime": "08:30",
+    "checkoutTime": "17:30",
+    "workingDays": [1, 2, 3, 4, 5],
+    "enabled": false,
+    "timezone": "Asia/Kolkata",
+    "description": "Flexible timing (currently disabled)",
+    "createdAt": "2025-12-04T11:00:00.000Z"
+  },
+  "notes": "This file stores your attendance schedules. Edit or delete the example entries and add your actual schedules here. Schedules with 'enabled': false will not run."
+}

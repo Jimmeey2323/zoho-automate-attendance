@@ -3,6 +3,7 @@ import cron from 'node-cron';
 import fs from 'fs';
 import path from 'path';
 import dotenv from 'dotenv';
+import http from 'http';
 
 // Load environment variables without debug output
 dotenv.config({ quiet: true });
@@ -768,29 +769,44 @@ async function main() {
     switch (command) {
         case 'start': {
             restoreSchedules();
-            log('Scheduler running', 'SUCCESS');
             
-            // Keep the process running with a heartbeat interval
-            const heartbeat = setInterval(() => {
-                // This keeps the event loop alive
-                // Optionally log status every hour
-            }, 60000); // Check every minute to keep process alive
+            // Start a simple HTTP server for Railway health checks
+            const PORT = process.env.PORT || 3000;
+            const server = http.createServer((req, res) => {
+                if (req.url === '/health' || req.url === '/') {
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ 
+                        status: 'ok', 
+                        schedules: activeSchedules.size,
+                        uptime: process.uptime()
+                    }));
+                } else {
+                    res.writeHead(404);
+                    res.end('Not Found');
+                }
+            });
+            
+            server.listen(PORT, () => {
+                log(`Health server listening on port ${PORT}`, 'SUCCESS');
+            });
+            
+            log('Scheduler running', 'SUCCESS');
             
             // Handle graceful shutdown
             process.on('SIGINT', () => {
-                clearInterval(heartbeat);
+                server.close();
                 log('Scheduler stopped', 'SUCCESS');
                 process.exit(0);
             });
             
             process.on('SIGTERM', () => {
-                clearInterval(heartbeat);
+                server.close();
                 log('Scheduler stopped (SIGTERM)', 'SUCCESS');
                 process.exit(0);
             });
             
-            // Prevent the function from returning (keeps the scheduler running)
-            await new Promise(() => {}); // Never resolves, keeps process alive
+            // Keep process alive - the HTTP server will keep the event loop running
+            break;
         }
 
         case 'add': {

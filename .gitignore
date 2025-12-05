@@ -12,7 +12,7 @@ logs/
 
 # Runtime Data
 attendance.log
-schedule.json
+schedule.json.bak
 
 # Node modules
 node_modules/

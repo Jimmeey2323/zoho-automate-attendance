@@ -29,8 +29,8 @@ const CONFIG = {
     MAPPER_ID: process.env.MAPPER_ID || '',
     
     // Scheduling Configuration (24-hour format)
-    CHECKIN_TIME: '09:00',      // Check-in at 9:00 AM
-    CHECKOUT_TIME: '19:00',     // Check-out at 6:00 PM
+    CHECKIN_TIME: '10:30',      // Check-in at 10:30 AM
+    CHECKOUT_TIME: '19:00',     // Check-out at 7:00 PM
     WORKING_DAYS: [1, 2, 3, 4, 5], // Monday to Friday (0 = Sunday)
     
     // Geo-Location Configuration (Your verified location from check-out)
@@ -277,7 +277,7 @@ function isLastEntryCheckIn(lastEntryData) {
 }
 
 /**
- * Performs attendance action (check-in or check-out) with validation
+ * Performs attendance action (check-in or check-out) without validation
  * @param {string} operation - 'checkin' or 'checkout'
  * @param {string} scheduleId - Schedule identifier
  * @param {object} options - Optional parameters
@@ -288,53 +288,8 @@ function isLastEntryCheckIn(lastEntryData) {
  */
 async function performAttendanceAction(operation, scheduleId, options = {}) {
     try {
-        // Fetch last attendance entry to validate
-        const lastEntry = await fetchLastAttendanceEntry();
-        
-        // Only validate if we successfully got data with entries
-        if (lastEntry.success && lastEntry.data) {
-            // Extract the actual entries array
-            let entries = lastEntry.data;
-            if (lastEntry.data.response && lastEntry.data.response.result) {
-                entries = lastEntry.data.response.result;
-            }
-            
-            // Only perform validation if we have actual entries
-            const hasEntries = Array.isArray(entries) && entries.length > 0;
-            
-            if (hasEntries) {
-                // Check if we can find this user's data in the response
-                const mostRecentAction = getMostRecentAction(lastEntry.data);
-                
-                if (mostRecentAction) {
-                    // We found the user's entries - perform validation
-                    if (operation === 'checkin') {
-                        // Before check-in, ensure last entry was check-out
-                        if (mostRecentAction === 'checkin') {
-                            log('Last entry was check-in, performing check-out first', 'INFO');
-                            // Perform checkout first
-                            await performAttendanceActionDirect('checkout', scheduleId, options);
-                            // Wait a moment
-                            await new Promise(resolve => setTimeout(resolve, 2000));
-                        }
-                    } else if (operation === 'checkout') {
-                        // Before check-out, ensure last entry was check-in
-                        if (mostRecentAction !== 'checkin') {
-                            log('Last entry was not check-in, skipping check-out', 'INFO');
-                            return { success: false, message: 'Skipped: No active check-in found' };
-                        }
-                    }
-                } else {
-                    // No user entries found in response - allow operation (can't validate)
-                    log(`Could not find user's entries in API response, proceeding with ${operation}`, 'INFO');
-                }
-            } else {
-                // No entries found - allow operation to proceed (first time or API delay)
-                log(`No recent entries found, proceeding with ${operation}`, 'INFO');
-            }
-        }
-        
-        // Proceed with the actual operation
+        log(`Performing ${operation} without validation check`, 'INFO');
+        // Directly execute the attendance action without checking last entry
         return await performAttendanceActionDirect(operation, scheduleId, options);
     } catch (error) {
         log(`${operation.toUpperCase()} error: ${error.message}`, 'ERROR');

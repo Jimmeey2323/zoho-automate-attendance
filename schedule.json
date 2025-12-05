@@ -1,7 +1,7 @@
 [
   {
-    "id": "schedule_1764852895954",
-    "checkinTime": "10:15",
+    "id": "schedule_default",
+    "checkinTime": "10:30",
     "checkoutTime": "19:00",
     "workingDays": [
       1,
@@ -12,7 +12,7 @@
     ],
     "enabled": true,
     "timezone": "Asia/Kolkata",
-    "description": "Office Hours Mon-Fri",
-    "createdAt": "2025-12-04T12:54:55.954Z"
+    "description": "Default Railway schedule - Check-in at 10:30 AM, Check-out at 7:00 PM",
+    "createdAt": "2025-12-05T00:00:00.000Z"
   }
 ]

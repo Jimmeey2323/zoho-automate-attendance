@@ -769,12 +769,28 @@ async function main() {
         case 'start': {
             restoreSchedules();
             log('Scheduler running', 'SUCCESS');
-            // Keep the process running
+            
+            // Keep the process running with a heartbeat interval
+            const heartbeat = setInterval(() => {
+                // This keeps the event loop alive
+                // Optionally log status every hour
+            }, 60000); // Check every minute to keep process alive
+            
+            // Handle graceful shutdown
             process.on('SIGINT', () => {
+                clearInterval(heartbeat);
                 log('Scheduler stopped', 'SUCCESS');
                 process.exit(0);
             });
-            break;
+            
+            process.on('SIGTERM', () => {
+                clearInterval(heartbeat);
+                log('Scheduler stopped (SIGTERM)', 'SUCCESS');
+                process.exit(0);
+            });
+            
+            // Prevent the function from returning (keeps the scheduler running)
+            await new Promise(() => {}); // Never resolves, keeps process alive
         }
 
         case 'add': {
